@@ -17,15 +17,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # - name: Login
-      #   uses: azure/login@v1
-      #   with:
-      #     client-id: 305ff1ca-2e14-4f4b-acf4-b58f8ee9c8c7
-      #     tenant-id: ${{vars.AZURE_TENANT_ID}} #3d4d17ea-1ae4-4705-947e-51369c5a5f79
-      #     subscription-id: c1577495-02ab-44d7-b2fd-cfd9b93b5afe
+      # Make it conditional??
+      # .secrets file which you add to .gitignore
+      - name: Install azure-cli
+        uses: pietrobolcato/install-azure-cli-action@v1
 
-      - name: Verify logged in
-        uses: Azure/cli@v1
-        with:
-          inlineScript: |
-            az --version
+      - name: Azure Version
+        run: az --version
