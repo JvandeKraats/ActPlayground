@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+env:
+  LOCATION: "westeurope"
+  RGNAME: "ActCLITest"
+
 #Special permissions required for OIDC authentication
 permissions:
   id-token: write
@@ -12,29 +16,40 @@ permissions:
   pull-requests: write
 
 jobs:
-  verify-Az-CLI:
-    name: 'verify the AZ CLI is installed'
+  deployIaC:
     runs-on: ubuntu-latest
 
     steps:
       - name: Install azure-cli
         uses: pietrobolcato/install-azure-cli-action@v1
 
-      - name: Azure Version
+      - name: Azure CLI Version check
         run: az --version
-      
-  deploy-bicep-template:
-    needs: verify-Az-CLI
-    name: 'Deploy resources using bicep'
-    runs-on: ubuntu-latest
 
-    steps:
-    # Each job needs it's own installation steps appearantly.
-    # Created app registration secret to log in
-      - name: Install azure-cli
-        uses: pietrobolcato/install-azure-cli-action@v1
-      
-      - name: 'Az CLI login'
-        run: az login --service-principal -u ${{secrets.AZURE_CLIENT_ID}} -p ${{secrets.CLIENT_SECRET}} --tenant ${{secrets.AZURE_TENANT_ID}}
-      
-      
+      - name: Setup Bicep
+        uses: anthony-c-martin/setup-bicep@v0.1
+
+      - name: Bicep CLI version check
+        run: bicep -v
+
+      - name: Git CLI version check
+        run: git -v
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: "Az CLI login"
+        run: az login --service-principal -u ${{secrets.AZURE_CLIENT_ID}} --tenant ${{secrets.AZURE_TENANT_ID}} --password=${{secrets.CLIENT_SECRET}} 
+
+      - name: "Bicep build"
+        run: az bicep build --file IaC/main.bicep 
+
+#az deployment group validate --resource-group ActCLITest --name ARM-validate-test --template-file IaC/main.json --parameters gitHubPrincipalId=305ff1ca-2e14-4f4b-acf4-b58f8ee9c8c7
+
+      - name: ARM Validate
+        run: |
+            az deployment group validate \
+              --resource-group $RGNAME \
+              --name ARM-validate-${{ github.run_id }} \
+              --template-file 'IaC/main.json' \
+              --parameters gitHubPrincipalId=${{ secrets.AZURE_CLIENT_ID}}
